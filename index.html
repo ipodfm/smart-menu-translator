@@ -618,7 +618,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>🍽️ 智能菜单翻译 <span class="version-tag">v1.4</span></h1>
+        <h1>🍽️ 智能菜单翻译 <span class="version-tag">v1.5</span></h1>
         <p>拍照识别菜品，获取详细介绍和评论</p>
     </div>
     
@@ -639,7 +639,7 @@
         </div>
         
         <div class="upload-section">
-            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-area" id="uploadArea">
                 <div class="upload-content" id="uploadContent">
                     <div class="upload-icon">📷</div>
                     <div class="upload-text">点击拍照或上传菜单</div>
@@ -647,7 +647,7 @@
                 </div>
                 <img id="previewImage" class="preview-image" style="display: none;">
             </div>
-            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
             <div class="upload-actions" id="uploadActions" style="display: none;">
                 <button class="btn btn-secondary" onclick="resetUpload()">重新选择</button>
                 <button class="btn btn-primary" onclick="analyzeMenu()">🔍 识别菜单</button>
@@ -1090,6 +1090,27 @@
         function hideError() {
             document.getElementById('errorMessage').classList.remove('active');
         }
+        
+        // DOM 加载完成后绑定事件
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, binding events...');
+            
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.addEventListener('change', handleFileSelect);
+                console.log('File input event bound');
+            }
+            
+            const uploadArea = document.getElementById('uploadArea');
+            if (uploadArea) {
+                uploadArea.addEventListener('click', function(e) {
+                    console.log('Upload area clicked');
+                    if (!uploadArea.classList.contains('has-image')) {
+                        fileInput.click();
+                    }
+                });
+            }
+        });
         
         // 拖拽上传支持
         const uploadArea = document.getElementById('uploadArea');
