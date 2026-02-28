@@ -689,7 +689,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>🍽️ 智能菜单翻译 <span class="version-tag">v2.0</span></h1>
+        <h1>🍽️ 智能菜单翻译 <span class="version-tag">v2.1</span></h1>
         <p>拍照识别菜品，获取详细介绍和评论</p>
     </div>
     
@@ -1016,11 +1016,15 @@
       "name": "菜品中文名（翻译或原名）",
       "originalName": "原始菜名（如英文、日文等）",
       "price": "价格（如果有）",
-      "description": "简短描述（50字以内）"
+      "description": "简短描述（50字以内）",
+      "ingredients": ["食材1", "食材2", "食材3", "食材4", "食材5"]
     }
   ]
 }
-只返回JSON，不要其他文字。`
+注意：
+1. 必须返回完整的JSON格式
+2. ingredients字段列出该菜品的主要食材，3-6个常见食材
+3. 只返回JSON，不要其他文字。`
                                 }
                             ]
                         }
@@ -1047,13 +1051,17 @@
             const dishesWithImages = await Promise.all(
                 result.dishes.map(async (dish) => {
                     const realImage = await searchRealImage(dish.name, dish.originalName);
+                    // 使用AI返回的食材，如果没有则生成默认食材
+                    const ingredients = dish.ingredients && dish.ingredients.length > 0 
+                        ? dish.ingredients 
+                        : generateIngredients(dish.name);
                     return {
                         ...dish,
                         rating: (3.5 + Math.random() * 1.5).toFixed(1),
                         ratingCount: Math.floor(Math.random() * 500) + 50,
                         tags: generateTags(dish.name),
                         image: realImage,
-                        ingredients: ["食材信息加载中..."],
+                        ingredients: ingredients,
                         reviews: [
                             { reviewer: "食客A", date: "2024-02", text: "味道不错，值得一试！" },
                             { reviewer: "游客B", date: "2024-01", text: "很有特色的菜品。" }
@@ -1138,6 +1146,57 @@
             }
             
             return tags.length > 0 ? [...new Set(tags)].slice(0, 3) : ['推荐'];
+        }
+        
+        // 根据菜品名称智能生成食材
+        function generateIngredients(dishName) {
+            const name = dishName.toLowerCase();
+            
+            // 常见菜品食材库
+            const ingredientMap = {
+                '麻婆豆腐': ['嫩豆腐', '牛肉末', '豆瓣酱', '花椒', '辣椒'],
+                '宫保鸡丁': ['鸡胸肉', '花生米', '干辣椒', '花椒', '大葱'],
+                '糖醋里脊': ['猪里脊肉', '白醋', '白糖', '番茄酱', '淀粉'],
+                '红烧肉': ['五花肉', '冰糖', '生抽', '老抽', '料酒'],
+                '鱼香肉丝': ['猪里脊', '木耳', '胡萝卜', '青椒', '泡椒'],
+                '水煮鱼': ['草鱼', '豆芽', '干辣椒', '花椒', '豆瓣酱'],
+                '辣子鸡': ['鸡肉', '干辣椒', '花椒', '芝麻', '花生'],
+                '回锅肉': ['五花肉', '青椒', '蒜苗', '豆瓣酱', '豆豉'],
+                '蚂蚁上树': ['粉丝', '肉末', '豆瓣酱', '葱花', '蒜末'],
+                '酸菜鱼': ['草鱼', '酸菜', '泡椒', '姜蒜', '花椒'],
+                '东坡肉': ['五花肉', '黄酒', '冰糖', '生抽', '老抽'],
+                '清蒸鲈鱼': ['鲈鱼', '葱姜', '蒸鱼豉油', '料酒', '香菜'],
+                '可乐鸡翅': ['鸡翅中', '可乐', '生抽', '老抽', '姜'],
+                '番茄炒蛋': ['鸡蛋', '番茄', '葱花', '盐', '糖'],
+                '蒜蓉西兰花': ['西兰花', '大蒜', '生抽', '蚝油', '盐'],
+                '凉拌黄瓜': ['黄瓜', '蒜末', '香醋', '生抽', '辣椒油'],
+                '地三鲜': ['茄子', '土豆', '青椒', '大蒜', '生抽'],
+                '干煸四季豆': ['四季豆', '肉末', '干辣椒', '花椒', '芽菜'],
+                '京酱肉丝': ['猪里脊', '甜面酱', '黄瓜', '葱丝', '豆腐皮'],
+                '松鼠桂鱼': ['桂鱼', '番茄酱', '白醋', '白糖', '松子']
+            };
+            
+            // 直接匹配
+            for (let dish in ingredientMap) {
+                if (name.includes(dish.toLowerCase())) {
+                    return ingredientMap[dish];
+                }
+            }
+            
+            // 根据关键词推断
+            if (name.includes('鸡')) return ['鸡肉', '姜', '葱', '料酒', '盐'];
+            if (name.includes('牛')) return ['牛肉', '洋葱', '青椒', '黑胡椒', '生抽'];
+            if (name.includes('猪')) return ['猪肉', '姜', '蒜', '生抽', '料酒'];
+            if (name.includes('鱼')) return ['新鲜鱼肉', '姜葱', '料酒', '蒸鱼豉油', '香菜'];
+            if (name.includes('虾')) return ['鲜虾', '蒜蓉', '葱花', '料酒', '盐'];
+            if (name.includes('豆腐')) return ['嫩豆腐', '生抽', '葱花', '蒜末', '香油'];
+            if (name.includes('蛋')) return ['鸡蛋', '葱花', '盐', '食用油'];
+            if (name.includes('面')) return ['面条', '青菜', '葱花', '生抽', '香油'];
+            if (name.includes('饭')) return ['米饭', '鸡蛋', '葱花', '盐', '生抽'];
+            if (name.includes('蔬菜') || name.includes('菜')) return ['时令蔬菜', '蒜蓉', '生抽', '盐', '食用油'];
+            
+            // 默认返回
+            return ['主要食材', '配菜', '调味料', '香料', '辅料'];
         }
         
         function displayResults(dishes) {
