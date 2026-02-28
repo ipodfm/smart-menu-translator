@@ -689,7 +689,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>🍽️ 智能菜单翻译 <span class="version-tag">v2.1</span></h1>
+        <h1>🍽️ 智能菜单翻译 <span class="version-tag">v2.2</span></h1>
         <p>拍照识别菜品，获取详细介绍和评论</p>
     </div>
     
@@ -1041,12 +1041,46 @@
             const data = await response.json();
             const text = data.choices[0].message.content;
             
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) {
-                throw new Error('无法解析API响应');
+            console.log('Raw API response:', text);
+            
+            // 尝试多种方式解析JSON
+            let result;
+            try {
+                // 方法1: 直接解析整个文本
+                result = JSON.parse(text);
+            } catch (e1) {
+                try {
+                    // 方法2: 提取 ```json ``` 代码块
+                    const codeBlockMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+                    if (codeBlockMatch) {
+                        result = JSON.parse(codeBlockMatch[1]);
+                    } else {
+                        // 方法3: 提取 { } 包裹的内容
+                        const jsonMatch = text.match(/\{[\s\S]*\}/);
+                        if (!jsonMatch) {
+                            throw new Error('无法找到JSON内容');
+                        }
+                        // 清理可能的格式问题
+                        let jsonStr = jsonMatch[0];
+                        // 修复常见的JSON格式错误
+                        jsonStr = jsonStr.replace(/,\s*([\}\]])/g, '$1'); // 移除尾随逗号
+                        jsonStr = jsonStr.replace(/\n/g, ''); // 移除换行
+                        result = JSON.parse(jsonStr);
+                    }
+                } catch (e2) {
+                    console.error('JSON parse error:', e2);
+                    console.error('Raw text:', text);
+                    throw new Error('JSON解析失败，请重试');
+                }
             }
             
-            const result = JSON.parse(jsonMatch[0]);
+            // 确保每个菜品都有ingredients字段
+            if (result.dishes && Array.isArray(result.dishes)) {
+                result.dishes = result.dishes.map(dish => ({
+                    ...dish,
+                    ingredients: dish.ingredients || []
+                }));
+            }
             
             const dishesWithImages = await Promise.all(
                 result.dishes.map(async (dish) => {
